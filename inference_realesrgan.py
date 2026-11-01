@@ -1,7 +1,15 @@
+
 import argparse
 import cv2
 import glob
 import os
+import sys
+
+# TorchVision compatibility fix for BasicSR
+import torchvision.transforms.functional as tv_functional
+
+sys.modules["torchvision.transforms.functional_tensor"] = tv_functional
+
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from basicsr.utils.download_util import load_file_from_url
 
@@ -92,7 +100,6 @@ def main():
         if not os.path.isfile(model_path):
             ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
             for url in file_url:
-                # model_path will be updated
                 model_path = load_file_from_url(
                     url=url, model_dir=os.path.join(ROOT_DIR, 'weights'), progress=True, file_name=None)
 
@@ -115,7 +122,7 @@ def main():
         half=not args.fp32,
         gpu_id=args.gpu_id)
 
-    if args.face_enhance:  # Use GFPGAN for face enhancement
+    if args.face_enhance:  # Use GFPGAN to enhance face
         from gfpgan import GFPGANer
         face_enhancer = GFPGANer(
             model_path='https://github.com/TencentARC/GFPGAN/releases/download/v1.3.0/GFPGANv1.3.pth',
@@ -123,6 +130,7 @@ def main():
             arch='clean',
             channel_multiplier=2,
             bg_upsampler=upsampler)
+
     os.makedirs(args.output, exist_ok=True)
 
     if os.path.isfile(args.input):
@@ -153,7 +161,7 @@ def main():
                 extension = extension[1:]
             else:
                 extension = args.ext
-            if img_mode == 'RGBA':  # RGBA images should be saved in png format
+            if img_mode == 'RGBA':
                 extension = 'png'
             if args.suffix == '':
                 save_path = os.path.join(args.output, f'{imgname}.{extension}')
